@@ -115,3 +115,69 @@ export function dateString(i: any): string {
   }).format(d);
 }
 
+// Encryption algorithm that used in backend.
+const algo: RsaHashedImportParams = {
+  name: "RSA-OAEP",
+  hash: {
+    name: "SHA-256",
+  },
+};
+
+// Encrypt using RSA private key.
+export async function encryptRSA(publicKeyStr: string, plaintext: string): Promise<string> {
+  const keyBuffer = new TextEncoder().encode(publicKeyStr);
+  try {
+    const publicKey = await window.crypto.subtle.importKey(
+      "spki",
+      keyBuffer,
+      algo,
+      false,
+      ["encrypt"],
+    );
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(plaintext);
+
+    const ciphertextBuffer = await window.crypto.subtle.encrypt(
+      algo,
+      publicKey,
+      dataBuffer,
+    );
+
+    // Convert the ciphertext to a base64-encoded string
+    const ciphertextBase64 = btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)));
+    return ciphertextBase64;
+  } catch {
+    return "";
+  }
+}
+
+// WARNING: Decrypt RSA don't use this on browser, since you'll be exposing private key to your
+// browser.
+export async function decryptRSA(privateKeyStr: string, ciphertextBase64: string): Promise<string> {
+  const keyBuffer = new TextEncoder().encode(privateKeyStr);
+  try {
+    const privateKey = await window.crypto.subtle.importKey(
+      "pkcs8",
+      keyBuffer,
+      algo,
+      false,
+      ["decrypt"],
+    );
+
+    const decoder = new TextDecoder();
+    const ciphertextBuffer = new Uint8Array(
+      atob(ciphertextBase64).split("").map(char => char.charCodeAt(0)),
+    );
+
+    const plaintextBuffer = await window.crypto.subtle.decrypt(
+      algo,
+      privateKey,
+      ciphertextBuffer
+    );
+
+    const plainText = decoder.decode(plaintextBuffer);
+    return plainText;
+  } catch {
+    return "";
+  }
+}
