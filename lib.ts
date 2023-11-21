@@ -15,6 +15,24 @@ export function num(input: any): number {
   }
 }
 
+// randomRange : inclusive random range.
+export function randomRange(min: number, max: number): number {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+// numerator/denominator chance.
+// If numerator = 1 and denominator = 3, there will be 33.33% chance this will output true.
+export function chance(numerator: number, denominator: number): boolean {
+  if (denominator === 0) return false;
+  const n = Math.abs(numerator);
+  const d = Math.abs(denominator);
+  if (d <= n) return true;
+  const r = randomRange(1, d);
+  return r > 0 && r <= n;
+}
+
 // Check if value is null or undefined.
 export function isNil(i: any): boolean {
   return i == null;
@@ -35,6 +53,7 @@ export async function req<Response, Body = Record<string, unknown>>(
   method: "POST" | "GET" | "PUT" | "DELETE" | "PATCH",
   url: string,
   opt?: {
+    qs?: Record<string, string>,
     headers?: Record<string, string>,
     body?: Body,
     signal?: AbortSignal,
@@ -50,7 +69,13 @@ export async function req<Response, Body = Record<string, unknown>>(
         ...opt.headers,
       };
     }
-    const response = await fetch(url, {
+    let u = url;
+    if (opt?.qs) {
+      const p = new URLSearchParams(opt.qs);
+      u = `${u}?${p.toString()}`;
+    }
+
+    const response = await fetch(u, {
       method,
       body: opt?.body && Object.keys(opt.body).length
         ? JSON.stringify(opt.body)
